@@ -79,10 +79,6 @@
   </div>
 
   <script type="module" src="../js/middleware/auth-guard.js"></script>
-  <script type="module">
-    import checkAccess from "../js/middleware/role-guard.js";
-    checkAccess(["Admin", "Super Admin"]);
-  </script>
   <script type="module" src="../js/main.js"></script>
   <script type="module">
     import { db } from "../js/firebase/firebase-config.js";

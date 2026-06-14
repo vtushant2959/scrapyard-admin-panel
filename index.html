@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scrapyard Admin | Redirecting</title>
+  <meta name="description" content="Scrapyard Admin Panel secure access portal." />
+  <meta name="robots" content="noindex,nofollow" />
+  <script type="module">
+    import authService from './js/firebase/auth.js';
+
+    authService.watchUser((user) => {
+      window.location.href = user ? './dashboard.html' : './login.html';
+    });
+  </script>
+</head>
+<body style="background:#0f172a;color:#fff;font-family:Arial,sans-serif;display:grid;place-items:center;height:100vh;">
+  <p>Checking access...</p>
+</body>
+</html>

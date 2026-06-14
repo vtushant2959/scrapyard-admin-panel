@@ -1,0 +1,53 @@
+.pickups-container {
+  padding: 25px;
+}
+
+.pickup-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-bottom: 25px;
+}
+
+.pickup-stat-card {
+  background: #1f2937;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.pickup-stat-card h3 {
+  color: white;
+}
+
+.pickup-stat-card p {
+  color: #9ca3af;
+}
+
+.pickup-card {
+  background: #1f2937;
+  padding: 20px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+}
+
+.pickup-card h2 {
+  color: white;
+}
+
+.pickup-card p {
+  color: #d1d5db;
+  margin-top: 10px;
+}
+
+.pickup-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.pickup-btn {
+  padding: 12px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}

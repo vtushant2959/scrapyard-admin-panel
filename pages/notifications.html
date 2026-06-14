@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notifications | Scrapyard Admin</title>
+  <link rel="icon" href="../assets/logo/favicon.ico" />
+  <link rel="stylesheet" href="../css/global.css" />
+  <style>
+    .notif-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 768px) { .notif-layout { grid-template-columns: 1fr; } }
+    .panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 26px; }
+    .panel-title { font-size: 17px; font-weight: 700; margin-bottom: 22px; }
+    .type-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+    .type-tab { padding: 7px 16px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer; transition: var(--transition); }
+    .type-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .char-count { font-size: 12px; color: var(--text-muted); text-align: right; margin-top: 4px; }
+    .send-btn { width: 100%; padding: 14px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-md); font-size: 15px; font-weight: 700; cursor: pointer; transition: var(--transition); margin-top: 6px; }
+    .send-btn:hover { background: var(--accent-hover); }
+    .send-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .history-list { display: flex; flex-direction: column; gap: 12px; max-height: 520px; overflow-y: auto; }
+    .notif-item { background: var(--bg-input); border-radius: var(--radius-md); padding: 14px 16px; border-left: 3px solid var(--accent); }
+    .notif-item-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+    .notif-item-msg   { font-size: 13px; color: var(--text-secondary); }
+    .notif-item-meta  { font-size: 11px; color: var(--text-muted); margin-top: 6px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; }
+    .notif-type-tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: rgba(59,130,246,.15); color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div id="sidebar-container"></div>
+  <div class="page-wrapper">
+    <div id="navbar"></div>
+    <main class="main-content">
+      <div class="page-header">
+        <h1>Notifications</h1>
+      </div>
+
+      <div class="notif-layout">
+        <!-- Compose -->
+        <div class="panel">
+          <div class="panel-title">Send Notification</div>
+
+          <div class="type-tabs">
+            <button class="type-tab active" data-type="general">General</button>
+            <button class="type-tab" data-type="order">Order</button>
+            <button class="type-tab" data-type="promo">Promo</button>
+            <button class="type-tab" data-type="alert">Alert</button>
+          </div>
+
+          <form id="notif-form">
+            <div class="form-group">
+              <label>Title</label>
+              <input class="form-control" type="text" id="notif-title" placeholder="Notification title" maxlength="80" required />
+              <div class="char-count"><span id="title-count">0</span>/80</div>
+            </div>
+            <div class="form-group">
+              <label>Message</label>
+              <textarea class="form-control" id="notif-message" placeholder="Write your message here…" rows="5" maxlength="300" style="resize:vertical;" required></textarea>
+              <div class="char-count"><span id="msg-count">0</span>/300</div>
+            </div>
+            <button class="send-btn" type="submit" id="sendBtn">🔔 &nbsp;Send Notification</button>
+          </form>
+        </div>
+
+        <!-- History -->
+        <div class="panel">
+          <div class="panel-title">Sent History</div>
+          <div id="history-list" class="history-list">
+            <p style="color:var(--text-muted);text-align:center;padding:30px">Loading…</p>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script type="module" src="../js/middleware/auth-guard.js"></script>
+  <script type="module" src="../js/main.js"></script>
+  <script type="module">
+    import { db } from "../js/firebase/firebase-config.js";
+    import { collection, addDoc, getDocs, query, orderBy, serverTimestamp }
+      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import toast  from "../js/components/toast.js";
+    import loader from "../js/components/loader.js";
+    import { formatDateTime } from "../js/utils/date-format.js";
+
+    let selectedType = "general";
+
+    document.querySelectorAll(".type-tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".type-tab").forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        selectedType = tab.dataset.type;
+      });
+    });
+
+    /* Character counters */
+    document.getElementById("notif-title").addEventListener("input", e => {
+      document.getElementById("title-count").textContent = e.target.value.length;
+    });
+    document.getElementById("notif-message").addEventListener("input", e => {
+      document.getElementById("msg-count").textContent = e.target.value.length;
+    });
+
+    /* Send */
+    document.getElementById("notif-form").addEventListener("submit", async e => {
+      e.preventDefault();
+      const title   = document.getElementById("notif-title").value.trim();
+      const message = document.getElementById("notif-message").value.trim();
+      if (!title || !message) { toast.show("Fill all fields", "error"); return; }
+
+      const btn = document.getElementById("sendBtn");
+      btn.disabled = true;
+      try {
+        loader.show();
+        await addDoc(collection(db, "notifications"), {
+          title, message, type: selectedType, createdAt: serverTimestamp()
+        });
+        toast.show("Notification sent!");
+        document.getElementById("notif-form").reset();
+        document.getElementById("title-count").textContent = "0";
+        document.getElementById("msg-count").textContent   = "0";
+        loadHistory();
+      } catch(err) { toast.show(err.message, "error"); }
+      finally { loader.hide(); btn.disabled = false; }
+    });
+
+    /* History */
+    async function loadHistory() {
+      const container = document.getElementById("history-list");
+      try {
+        const snap = await getDocs(query(collection(db, "notifications"), orderBy("createdAt","desc")))
+          .catch(() => getDocs(collection(db, "notifications")));
+
+        container.innerHTML = "";
+        if (snap.empty) {
+          container.innerHTML = `<p style="color:var(--text-muted);text-align:center;padding:30px">No notifications sent yet.</p>`;
+          return;
+        }
+        snap.forEach(d => {
+          const n = d.data();
+          const item = document.createElement("div"); item.className = "notif-item";
+          const titleEl = document.createElement("div"); titleEl.className = "notif-item-title"; titleEl.textContent = n.title;
+          const msgEl   = document.createElement("div"); msgEl.className   = "notif-item-msg";   msgEl.textContent = n.message;
+          const meta    = document.createElement("div"); meta.className    = "notif-item-meta";
+          const tag = document.createElement("span"); tag.className = "notif-type-tag"; tag.textContent = n.type || "general";
+          const dt  = document.createElement("span"); dt.textContent = formatDateTime(n.createdAt);
+          meta.appendChild(tag); meta.appendChild(dt);
+          item.appendChild(titleEl); item.appendChild(msgEl); item.appendChild(meta);
+          container.appendChild(item);
+        });
+      } catch(e) {
+        container.innerHTML = `<p style="color:var(--danger);text-align:center;padding:20px">${e.message}</p>`;
+      }
+    }
+
+    loadHistory();
+  </script>
+</body>
+</html>

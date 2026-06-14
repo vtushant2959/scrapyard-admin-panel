@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orders | Scrapyard Admin</title>
+  <link rel="icon" href="../assets/logo/favicon.ico" />
+  <link rel="stylesheet" href="../css/global.css" />
+  <style>
+    .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 22px; }
+    .filter-btn { padding: 8px 18px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer; transition: var(--transition); }
+    .filter-btn.active, .filter-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .search-bar { margin-bottom: 20px; }
+    .search-bar input { width: 100%; max-width: 380px; padding: 11px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-primary); font-size: 14px; }
+    .search-bar input::placeholder { color: var(--text-muted); }
+    .orders-list { display: flex; flex-direction: column; gap: 14px; }
+    .order-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px 24px; }
+    .order-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .order-id { font-size: 15px; font-weight: 700; letter-spacing: .5px; }
+    .order-meta { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+    .order-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    .status-select { padding: 8px 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; cursor: pointer; }
+    @media (max-width: 600px) { .order-row { flex-direction: column; align-items: flex-start; } }
+  </style>
+</head>
+<body>
+  <div id="sidebar-container"></div>
+  <div class="page-wrapper">
+    <div id="navbar"></div>
+    <main class="main-content">
+      <div class="page-header">
+        <h1>Orders</h1>
+        <span class="text-muted" id="orders-count"></span>
+      </div>
+      <div class="search-bar">
+        <input type="search" id="order-search" placeholder="Search by order ID…" />
+      </div>
+      <div class="filters">
+        <button class="filter-btn active" data-status="all">All</button>
+        <button class="filter-btn" data-status="Pending">Pending</button>
+        <button class="filter-btn" data-status="Accepted">Accepted</button>
+        <button class="filter-btn" data-status="Completed">Completed</button>
+        <button class="filter-btn" data-status="Cancelled">Cancelled</button>
+      </div>
+      <div id="orders-list" class="orders-list"></div>
+    </main>
+  </div>
+
+  <script type="module" src="../js/middleware/auth-guard.js"></script>
+  <script type="module" src="../js/main.js"></script>
+  <script type="module">
+    import { db } from "../js/firebase/firebase-config.js";
+    import { collection, getDocs, updateDoc, doc, query, orderBy }
+      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import toast from "../js/components/toast.js";
+    import loader from "../js/components/loader.js";
+    import { formatDate } from "../js/utils/date-format.js";
+
+    let allOrders = [], activeFilter = "all";
+
+    async function loadOrders() {
+      try {
+        loader.show();
+        const snap = await getDocs(query(collection(db, "orders"), orderBy("createdAt", "desc")))
+          .catch(() => getDocs(collection(db, "orders")));
+        allOrders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        document.getElementById("orders-count").textContent = `${allOrders.length} total`;
+        render();
+      } catch(e) { toast.show(e.message, "error"); }
+      finally { loader.hide(); }
+    }
+
+    function render() {
+      const q = document.getElementById("order-search").value.toLowerCase();
+      let list = allOrders;
+      if (activeFilter !== "all") list = list.filter(o => o.status === activeFilter);
+      if (q) list = list.filter(o => o.orderId?.toLowerCase().includes(q) || o.id.toLowerCase().includes(q));
+
+      const container = document.getElementById("orders-list");
+      container.innerHTML = "";
+      if (!list.length) {
+        container.innerHTML = `<p style="color:var(--text-muted);text-align:center;padding:40px">No orders found.</p>`;
+        return;
+      }
+      list.forEach(o => {
+        const card = document.createElement("div");
+        card.className = "order-card";
+
+        const row = document.createElement("div"); row.className = "order-row";
+        const left = document.createElement("div");
+        const idEl = document.createElement("div"); idEl.className = "order-id";
+        idEl.textContent = `#${(o.orderId || o.id).toString().slice(0,10).toUpperCase()}`;
+        const meta = document.createElement("div"); meta.className = "order-meta";
+        meta.textContent = formatDate(o.createdAt);
+        left.appendChild(idEl); left.appendChild(meta);
+
+        const badge = document.createElement("span");
+        badge.className = `badge badge-${statusBadge(o.status)}`;
+        badge.textContent = o.status || "Pending";
+
+        row.appendChild(left); row.appendChild(badge);
+
+        const actions = document.createElement("div"); actions.className = "order-actions";
+        const sel = document.createElement("select"); sel.className = "status-select";
+        ["Pending","Accepted","Completed","Cancelled"].forEach(s => {
+          const opt = document.createElement("option");
+          opt.value = s; opt.textContent = s;
+          if (s === o.status) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        sel.onchange = async () => {
+          try {
+            loader.show();
+            await updateDoc(doc(db, "orders", o.id), { status: sel.value });
+            o.status = sel.value;
+            toast.show("Status updated");
+            badge.className = `badge badge-${statusBadge(sel.value)}`;
+            badge.textContent = sel.value;
+          } catch(e) { toast.show(e.message, "error"); }
+          finally { loader.hide(); }
+        };
+        actions.appendChild(sel);
+
+        card.appendChild(row); card.appendChild(actions);
+        container.appendChild(card);
+      });
+    }
+
+    function statusBadge(s) {
+      if (!s || s === "Pending")  return "warning";
+      if (s === "Completed")       return "success";
+      if (s === "Cancelled")       return "danger";
+      return "info";
+    }
+
+    document.querySelectorAll(".filter-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        activeFilter = btn.dataset.status;
+        render();
+      });
+    });
+
+    document.getElementById("order-search").addEventListener("input", render);
+    loadOrders();
+  </script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admins | Scrapyard Admin</title>
+  <link rel="icon" href="../assets/logo/favicon.ico" />
+  <link rel="stylesheet" href="../css/global.css" />
+  <style>
+    .admin-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 768px) { .admin-layout { grid-template-columns: 1fr; } }
+    .panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 26px; }
+    .panel-title { font-size: 17px; font-weight: 700; margin-bottom: 22px; }
+    .uid-hint { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
+    .role-select { width: 100%; padding: 12px 16px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-primary); font-size: 15px; cursor: pointer; }
+    .add-btn { width: 100%; padding: 14px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-md); font-size: 15px; font-weight: 700; cursor: pointer; transition: var(--transition); margin-top: 6px; }
+    .add-btn:hover { background: var(--accent-hover); }
+    .admin-list { display: flex; flex-direction: column; gap: 12px; }
+    .admin-item { background: var(--bg-input); border-radius: var(--radius-md); padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+    .admin-item-left { display: flex; align-items: center; gap: 14px; }
+    .admin-avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; }
+    .admin-email { font-size: 14px; font-weight: 600; }
+    .admin-uid   { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .del-btn { padding: 8px 16px; background: rgba(239,68,68,.15); color: var(--danger); border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; transition: var(--transition); }
+    .del-btn:hover { background: var(--danger); color: #fff; }
+    .warning-box { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.25); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 22px; font-size: 13px; color: var(--warning); line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div id="sidebar-container"></div>
+  <div class="page-wrapper">
+    <div id="navbar"></div>
+    <main class="main-content">
+      <div class="page-header">
+        <h1>Admin Management</h1>
+        <span class="text-muted" id="admin-count"></span>
+      </div>
+
+      <div class="admin-layout">
+
+        <!-- Add Admin -->
+        <div class="panel">
+          <div class="panel-title">Add New Admin</div>
+          <div class="warning-box">
+            ⚠️ The <strong>UID</strong> must match the user's Firebase Auth UID exactly.
+            Find it in Firebase Console → Authentication → copy the UID next to the email.
+          </div>
+          <form id="add-admin-form">
+            <div class="form-group">
+              <label>Firebase Auth UID</label>
+              <input class="form-control" type="text" id="admin-uid" placeholder="e.g. abc123xyz…" required />
+              <div class="uid-hint">Get this from Firebase Console → Authentication</div>
+            </div>
+            <div class="form-group">
+              <label>Email Address</label>
+              <input class="form-control" type="email" id="admin-email" placeholder="admin@example.com" required />
+            </div>
+            <div class="form-group">
+              <label>Role</label>
+              <select class="role-select" id="admin-role">
+                <option value="Admin">Admin</option>
+                <option value="Super Admin">Super Admin</option>
+              </select>
+            </div>
+            <button class="add-btn" type="submit">+ Add Admin</button>
+          </form>
+        </div>
+
+        <!-- Admin List -->
+        <div class="panel">
+          <div class="panel-title">Current Admins</div>
+          <div id="admin-list" class="admin-list">
+            <p style="color:var(--text-muted);text-align:center;padding:30px">Loading…</p>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="../js/middleware/auth-guard.js"></script>
+  <script type="module">
+    import checkAccess from "../js/middleware/role-guard.js";
+    checkAccess(["Admin", "Super Admin"]);
+  </script>
+  <script type="module" src="../js/main.js"></script>
+  <script type="module">
+    import { db } from "../js/firebase/firebase-config.js";
+    import { collection, getDocs, setDoc, deleteDoc, doc, serverTimestamp }
+      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import toast  from "../js/components/toast.js";
+    import loader from "../js/components/loader.js";
+
+    async function loadAdmins() {
+      const container = document.getElementById("admin-list");
+      try {
+        loader.show();
+        const snap = await getDocs(collection(db, "admins"));
+        document.getElementById("admin-count").textContent = `${snap.size} admin${snap.size !== 1 ? "s" : ""}`;
+        container.innerHTML = "";
+        if (snap.empty) {
+          container.innerHTML = `<p style="color:var(--text-muted);text-align:center;padding:30px">No admins yet.</p>`;
+          return;
+        }
+        snap.forEach(d => {
+          const a = d.data();
+          const item = document.createElement("div"); item.className = "admin-item";
+
+          const left = document.createElement("div"); left.className = "admin-item-left";
+          const av   = document.createElement("div"); av.className = "admin-avatar";
+          av.textContent = (a.email || "A")[0].toUpperCase();
+
+          const info = document.createElement("div");
+          const em   = document.createElement("div"); em.className = "admin-email"; em.textContent = a.email || "—";
+          const roleSpan = document.createElement("span");
+          roleSpan.className = `badge badge-${a.role === "Super Admin" ? "info" : "success"}`;
+          roleSpan.textContent = a.role || "Admin";
+          const uid  = document.createElement("div"); uid.className = "admin-uid"; uid.textContent = `UID: ${d.id}`;
+          info.appendChild(em); info.appendChild(roleSpan); info.appendChild(uid);
+
+          left.appendChild(av); left.appendChild(info);
+
+          const delBtn = document.createElement("button"); delBtn.className = "del-btn"; delBtn.textContent = "Remove";
+          delBtn.onclick = async () => {
+            if (!confirm(`Remove ${a.email} as admin?`)) return;
+            try {
+              loader.show();
+              await deleteDoc(doc(db, "admins", d.id));
+              toast.show("Admin removed"); loadAdmins();
+            } catch(e) { toast.show(e.message, "error"); }
+            finally { loader.hide(); }
+          };
+
+          item.appendChild(left); item.appendChild(delBtn);
+          container.appendChild(item);
+        });
+      } catch(e) { toast.show(e.message, "error"); container.innerHTML = `<p style="color:var(--danger);padding:20px">${e.message}</p>`; }
+      finally { loader.hide(); }
+    }
+
+    document.getElementById("add-admin-form").addEventListener("submit", async e => {
+      e.preventDefault();
+      const uid   = document.getElementById("admin-uid").value.trim();
+      const email = document.getElementById("admin-email").value.trim();
+      const role  = document.getElementById("admin-role").value;
+      if (!uid || !email || !role) { toast.show("All fields required", "error"); return; }
+      try {
+        loader.show();
+        await setDoc(doc(db, "admins", uid), { email, role, createdAt: serverTimestamp() });
+        toast.show("Admin added successfully");
+        document.getElementById("add-admin-form").reset();
+        loadAdmins();
+      } catch(e) { toast.show(e.message, "error"); }
+      finally { loader.hide(); }
+    });
+
+    loadAdmins();
+  </script>
+</body>
+</html>

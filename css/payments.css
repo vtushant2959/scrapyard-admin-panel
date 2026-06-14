@@ -1,0 +1,44 @@
+.payments-container {
+  padding: 25px;
+}
+
+.payment-card {
+  background: #1f2937;
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.payment-card h3 {
+  color: white;
+}
+
+.payment-info {
+  margin-top: 15px;
+}
+
+.payment-info p {
+  color: #d1d5db;
+  margin-bottom: 10px;
+}
+
+.amount {
+  color: #10b981;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.payment-status {
+  margin-top: 15px;
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 20px;
+}
+
+.success {
+  background: #10b981;
+}
+
+.failed {
+  background: #ef4444;
+}

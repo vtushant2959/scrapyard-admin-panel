@@ -1,0 +1,78 @@
+/* ==========================================
+   REVIEWS PAGE
+========================================== */
+
+.reviews-container {
+  padding: var(--space-xl);
+}
+
+.rating-summary {
+  background: var(--bg-card);
+  padding: 25px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 24px;
+}
+
+.rating-number {
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.review-card {
+  background: var(--bg-card);
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.review-top {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.review-user {
+  font-size: var(--fs-md);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.review-date {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.review-content {
+  margin-top: 16px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.review-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.review-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.review-btn.hide {
+  background: var(--warning);
+}
+
+.review-btn.delete {
+  background: var(--danger);
+  color: #fff;
+}

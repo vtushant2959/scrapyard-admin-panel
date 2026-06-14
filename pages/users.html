@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Users | Scrapyard Admin</title>
+  <link rel="icon" href="../assets/logo/favicon.ico" />
+  <link rel="stylesheet" href="../css/global.css" />
+  <style>
+    .users-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 18px;
+    }
+    .user-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      transition: var(--transition);
+    }
+    .user-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+    .user-card-top { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+    .user-avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 700; flex-shrink: 0;
+    }
+    .user-name  { font-weight: 600; font-size: 15px; margin-bottom: 2px; }
+    .user-email { font-size: 13px; color: var(--text-muted); }
+    .user-card-actions { display: flex; gap: 8px; margin-top: 14px; }
+    .user-card-actions button { flex: 1; padding: 9px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: var(--transition); }
+    .btn-block  { background: rgba(245,158,11,.15); color: var(--warning); }
+    .btn-block:hover { background: var(--warning); color: #fff; }
+    .btn-del    { background: rgba(239,68,68,.15); color: var(--danger); }
+    .btn-del:hover { background: var(--danger); color: #fff; }
+    .search-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+    .search-bar input { flex: 1; max-width: 380px; padding: 11px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-primary); font-size: 14px; }
+    .search-bar input::placeholder { color: var(--text-muted); }
+    @media (max-width: 600px) { .users-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div id="sidebar-container"></div>
+  <div class="page-wrapper">
+    <div id="navbar"></div>
+    <main class="main-content">
+      <div class="page-header">
+        <h1>Users</h1>
+        <span class="text-muted" id="users-count"></span>
+      </div>
+      <div class="search-bar">
+        <input type="search" id="user-search" placeholder="Search by name or email…" />
+      </div>
+      <div id="users-list" class="users-grid"></div>
+    </main>
+  </div>
+
+  <script type="module" src="../js/middleware/auth-guard.js"></script>
+  <script type="module" src="../js/main.js"></script>
+  <script type="module">
+    import { db } from "../js/firebase/firebase-config.js";
+    import { collection, getDocs, updateDoc, deleteDoc, doc }
+      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import toast from "../js/components/toast.js";
+    import loader from "../js/components/loader.js";
+
+    let allUsers = [];
+
+    async function loadUsers() {
+      try {
+        loader.show();
+        const snap = await getDocs(collection(db, "users"));
+        allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        document.getElementById("users-count").textContent = `${allUsers.length} total`;
+        renderUsers(allUsers);
+      } catch (e) { toast.show(e.message, "error"); }
+      finally { loader.hide(); }
+    }
+
+    function renderUsers(list) {
+      const container = document.getElementById("users-list");
+      container.innerHTML = "";
+      if (!list.length) {
+        container.innerHTML = `<p style="color:var(--text-muted);grid-column:1/-1">No users found.</p>`;
+        return;
+      }
+      list.forEach(u => {
+        const card = document.createElement("div");
+        card.className = "user-card";
+        const initial = (u.name || u.email || "U")[0].toUpperCase();
+        const top = document.createElement("div"); top.className = "user-card-top";
+        const av = document.createElement("div"); av.className = "user-avatar"; av.textContent = initial;
+        const info = document.createElement("div");
+        const nm = document.createElement("div"); nm.className = "user-name"; nm.textContent = u.name || "—";
+        const em = document.createElement("div"); em.className = "user-email"; em.textContent = u.email || "—";
+        info.appendChild(nm); info.appendChild(em);
+        top.appendChild(av); top.appendChild(info);
+
+        const statusBadge = document.createElement("span");
+        statusBadge.className = `badge badge-${u.status === "blocked" ? "danger" : "success"}`;
+        statusBadge.textContent = u.status || "active";
+
+        const actions = document.createElement("div"); actions.className = "user-card-actions";
+        const blockBtn = document.createElement("button");
+        blockBtn.className = "btn-block";
+        blockBtn.textContent = u.status === "blocked" ? "Unblock" : "Block";
+        blockBtn.onclick = async () => {
+          try {
+            loader.show();
+            const newStatus = u.status === "blocked" ? "active" : "blocked";
+            await updateDoc(doc(db, "users", u.id), { status: newStatus });
+            toast.show(`User ${newStatus}`);
+            loadUsers();
+          } catch(e) { toast.show(e.message, "error"); }
+          finally { loader.hide(); }
+        };
+        const delBtn = document.createElement("button");
+        delBtn.className = "btn-del"; delBtn.textContent = "Delete";
+        delBtn.onclick = async () => {
+          if (!confirm("Delete this user permanently?")) return;
+          try {
+            loader.show();
+            await deleteDoc(doc(db, "users", u.id));
+            toast.show("User deleted");
+            loadUsers();
+          } catch(e) { toast.show(e.message, "error"); }
+          finally { loader.hide(); }
+        };
+        actions.appendChild(blockBtn); actions.appendChild(delBtn);
+        card.appendChild(top); card.appendChild(statusBadge); card.appendChild(actions);
+        container.appendChild(card);
+      });
+    }
+
+    document.getElementById("user-search").addEventListener("input", e => {
+      const q = e.target.value.toLowerCase();
+      renderUsers(allUsers.filter(u =>
+        (u.name || "").toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q)
+      ));
+    });
+
+    loadUsers();
+  </script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+{
+  "admins": [
+    {
+      "id": "ADM001",
+      "email": "admin@scrapyard.com",
+      "role": "Super Admin",
+      "status": "active"
+    },
+    {
+      "id": "ADM002",
+      "email": "manager@scrapyard.com",
+      "role": "Admin",
+      "status": "active"
+    }
+  ],
+
+  "users": [
+    {
+      "id": "USR001",
+      "name": "Rahul Kumar",
+      "email": "rahul@gmail.com",
+      "phone": "9876543210",
+      "status": "active"
+    },
+    {
+      "id": "USR002",
+      "name": "Priya Sharma",
+      "email": "priya@gmail.com",
+      "phone": "9876543211",
+      "status": "active"
+    }
+  ],
+
+  "products": [
+    {
+      "id": "PRD001",
+      "name": "Iron Scrap",
+      "category": "Metal",
+      "price": 32,
+      "unit": "kg",
+      "image": "assets/uploads/products/iron.jpg"
+    },
+    {
+      "id": "PRD002",
+      "name": "Plastic Scrap",
+      "category": "Plastic",
+      "price": 18,
+      "unit": "kg",
+      "image": "assets/uploads/products/plastic.jpg"
+    }
+  ],
+
+  "refurbished_products": [
+    {
+      "id": "RFB001",
+      "name": "Refurbished Fan",
+      "category": "Electronics",
+      "price": 1200,
+      "stock": 5
+    }
+  ],
+
+  "orders": [
+    {
+      "id": "ORD001",
+      "userId": "USR001",
+      "productId": "PRD001",
+      "quantity": 20,
+      "amount": 640,
+      "status": "Pending"
+    },
+    {
+      "id": "ORD002",
+      "userId": "USR002",
+      "productId": "PRD002",
+      "quantity": 15,
+      "amount": 270,
+      "status": "Completed"
+    }
+  ],
+
+  "bulk_orders": [
+    {
+      "id": "BLK001",
+      "companyName": "ABC Industries",
+      "contactPerson": "Vikas Jain",
+      "amount": 25000,
+      "status": "Pending"
+    }
+  ],
+
+  "scrap_requests": [
+    {
+      "id": "SCR001",
+      "userName": "Rahul Kumar",
+      "category": "Electronics",
+      "pickupAddress": "123 MG Road, Mumbai",
+      "status": "Pending"
+    },
+    {
+      "id": "SCR002",
+      "userName": "Priya Sharma",
+      "category": "Metal",
+      "pickupAddress": "456 CP, Delhi",
+      "status": "Active"
+    }
+  ],
+
+  "notifications": [
+    {
+      "id": "NOT001",
+      "title": "Festival Offer",
+      "message": "Get extra scrap bonus this week",
+      "type": "offer",
+      "status": "sent"
+    }
+  ],
+
+  "support_tickets": [
+    {
+      "id": "SUP001",
+      "userName": "Rahul Kumar",
+      "subject": "Pickup delayed",
+      "status": "open"
+    }
+  ],
+
+  "enquiries": [
+    {
+      "id": "ENQ001",
+      "name": "Amit Patel",
+      "email": "amit@gmail.com",
+      "message": "Need scrap pickup for office"
+    }
+  ],
+
+  "reviews": [
+    {
+      "id": "REV001",
+      "userName": "Rahul Kumar",
+      "rating": 5,
+      "review": "Excellent service and fast pickup",
+      "date": "2026-05-10"
+    },
+    {
+      "id": "REV002",
+      "userName": "Priya Sharma",
+      "rating": 4,
+      "review": "Good pricing and professional team",
+      "date": "2026-05-08"
+    }
+  ],
+
+  "payments": [
+    {
+      "id": "PAY001",
+      "userId": "USR001",
+      "amount": 640,
+      "method": "UPI",
+      "status": "success"
+    },
+    {
+      "id": "PAY002",
+      "userId": "USR002",
+      "amount": 270,
+      "method": "Card",
+      "status": "success"
+    }
+  ],
+
+  "settings": {
+    "siteName": "Scrapyard Admin",
+    "currency": "INR",
+    "theme": "dark",
+    "notificationsEnabled": true
+  }
+}

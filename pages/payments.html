@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payments | Scrapyard Admin</title>
+  <link rel="icon" href="../assets/logo/favicon.ico" />
+  <link rel="stylesheet" href="../css/global.css" />
+  <style>
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 14px; margin-bottom: 24px; }
+    .mini-stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 18px 20px; }
+    .mini-stat-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+    .mini-stat-val   { font-size: 24px; font-weight: 700; }
+    .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+    .filter-btn { padding: 8px 18px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer; transition: var(--transition); }
+    .filter-btn.active,.filter-btn:hover { background: var(--accent); color:#fff; border-color: var(--accent); }
+    .payment-list { display: flex; flex-direction: column; gap: 14px; }
+    .payment-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
+    .payment-left  { display: flex; flex-direction: column; gap: 4px; }
+    .payment-amount { font-size: 22px; font-weight: 700; color: var(--success); }
+    .payment-meta   { font-size: 13px; color: var(--text-muted); }
+    .payment-right  { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  </style>
+</head>
+<body>
+  <div id="sidebar-container"></div>
+  <div class="page-wrapper">
+    <div id="navbar"></div>
+    <main class="main-content">
+      <div class="page-header">
+        <h1>Payments</h1>
+        <span class="text-muted" id="pay-count"></span>
+      </div>
+      <div class="stats-row">
+        <div class="mini-stat"><div class="mini-stat-label">Total Payments</div><div class="mini-stat-val" id="st-total">—</div></div>
+        <div class="mini-stat"><div class="mini-stat-label">Total Revenue</div><div class="mini-stat-val" style="color:var(--success)" id="st-revenue">—</div></div>
+        <div class="mini-stat"><div class="mini-stat-label">Successful</div><div class="mini-stat-val" style="color:var(--success)" id="st-success">—</div></div>
+        <div class="mini-stat"><div class="mini-stat-label">Failed</div><div class="mini-stat-val" style="color:var(--danger)" id="st-failed">—</div></div>
+      </div>
+      <div class="filters">
+        <button class="filter-btn active" data-status="all">All</button>
+        <button class="filter-btn" data-status="success">Success</button>
+        <button class="filter-btn" data-status="failed">Failed</button>
+        <button class="filter-btn" data-status="pending">Pending</button>
+      </div>
+      <div id="payment-list" class="payment-list"></div>
+    </main>
+  </div>
+
+  <script type="module" src="../js/middleware/auth-guard.js"></script>
+  <script type="module" src="../js/main.js"></script>
+  <script type="module">
+    import { db } from "../js/firebase/firebase-config.js";
+    import { collection, getDocs, query, orderBy }
+      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import toast from "../js/components/toast.js";
+    import loader from "../js/components/loader.js";
+    import { formatDateTime } from "../js/utils/date-format.js";
+
+    let allPayments = [], activeFilter = "all";
+
+    async function load() {
+      try {
+        loader.show();
+        const snap = await getDocs(query(collection(db, "payments"), orderBy("createdAt","desc")))
+          .catch(() => getDocs(collection(db, "payments")));
+        allPayments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        const revenue = allPayments.filter(p => p.status === "success")
+          .reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+        const successCount = allPayments.filter(p => p.status === "success").length;
+        const failedCount  = allPayments.filter(p => p.status === "failed").length;
+
+        document.getElementById("pay-count").textContent    = `${allPayments.length} total`;
+        document.getElementById("st-total").textContent    = allPayments.length;
+        document.getElementById("st-revenue").textContent  = `₹${revenue.toLocaleString("en-IN")}`;
+        document.getElementById("st-success").textContent  = successCount;
+        document.getElementById("st-failed").textContent   = failedCount;
+        render();
+      } catch(e) { toast.show(e.message, "error"); }
+      finally { loader.hide(); }
+    }
+
+    function render() {
+      let list = allPayments;
+      if (activeFilter !== "all") list = list.filter(p => (p.status || "pending") === activeFilter);
+
+      const container = document.getElementById("payment-list");
+      container.innerHTML = "";
+      if (!list.length) {
+        container.innerHTML = `<p style="color:var(--text-muted);text-align:center;padding:40px">No payments found.</p>`;
+        return;
+      }
+      list.forEach(p => {
+        const card = document.createElement("div"); card.className = "payment-card";
+
+        const left = document.createElement("div"); left.className = "payment-left";
+        const amt  = document.createElement("div"); amt.className = "payment-amount";
+        amt.textContent = `₹${Number(p.amount || 0).toLocaleString("en-IN")}`;
+        const method = document.createElement("div"); method.className = "payment-meta";
+        method.textContent = p.paymentMethod || "Unknown method";
+        const date = document.createElement("div"); date.className = "payment-meta";
+        date.textContent = formatDateTime(p.createdAt);
+        left.appendChild(amt); left.appendChild(method); left.appendChild(date);
+
+        const right = document.createElement("div"); right.className = "payment-right";
+        const badge = document.createElement("span");
+        const s = (p.status || "pending").toLowerCase();
+        badge.className = `badge badge-${s === "success" ? "success" : s === "failed" ? "danger" : "warning"}`;
+        badge.textContent = p.status || "Pending";
+
+        const uid = document.createElement("div"); uid.className = "payment-meta";
+        uid.textContent = `ID: ${p.id.slice(0,8).toUpperCase()}`;
+
+        right.appendChild(badge); right.appendChild(uid);
+        card.appendChild(left); card.appendChild(right);
+        container.appendChild(card);
+      });
+    }
+
+    document.querySelectorAll(".filter-btn").forEach(btn =>
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        activeFilter = btn.dataset.status;
+        render();
+      })
+    );
+
+    load();
+  </script>
+</body>
+</html>

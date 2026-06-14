@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile | Scrapyard Admin</title>
+  <link rel="icon" href="../assets/logo/favicon.ico" />
+  <link rel="stylesheet" href="../css/global.css" />
+  <style>
+    .profile-layout { display: grid; grid-template-columns: 300px 1fr; gap: 24px; }
+    @media (max-width: 860px) { .profile-layout { grid-template-columns: 1fr; } }
+    .panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; }
+    .profile-card { display: flex; flex-direction: column; align-items: center; text-align: center; }
+    .profile-avatar {
+      width: 100px; height: 100px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 40px; font-weight: 700; color: #fff;
+      margin-bottom: 18px; flex-shrink: 0;
+    }
+    .profile-email { font-size: 15px; color: var(--text-secondary); margin-bottom: 12px; word-break: break-all; }
+    .profile-role  { margin-bottom: 20px; }
+    .profile-uid   { font-size: 11px; color: var(--text-muted); background: var(--bg-input); padding: 8px 12px; border-radius: var(--radius-sm); word-break: break-all; width: 100%; }
+    .panel-title { font-size: 17px; font-weight: 700; margin-bottom: 22px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+    .save-btn { padding: 12px 28px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-md); font-size: 14px; font-weight: 700; cursor: pointer; transition: var(--transition); }
+    .save-btn:hover { background: var(--accent-hover); }
+    .danger-btn { padding: 12px 28px; background: rgba(239,68,68,.12); color: var(--danger); border: 1px solid rgba(239,68,68,.25); border-radius: var(--radius-md); font-size: 14px; font-weight: 700; cursor: pointer; transition: var(--transition); }
+    .danger-btn:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .form-actions { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+    .password-note { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+    .activity-list { display: flex; flex-direction: column; gap: 0; }
+    .activity-item { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); margin-top: 5px; flex-shrink: 0; }
+    .activity-text { font-size: 13px; color: var(--text-secondary); }
+    .activity-time { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+  </style>
+</head>
+<body>
+  <div id="sidebar-container"></div>
+  <div class="page-wrapper">
+    <div id="navbar"></div>
+    <main class="main-content">
+      <div class="page-header">
+        <h1>My Profile</h1>
+        <a href="/pages/settings.html" class="btn btn-primary btn-sm">⚙ Settings</a>
+      </div>
+
+      <div class="profile-layout">
+
+        <!-- Profile Card -->
+        <div style="display:flex;flex-direction:column;gap:20px;">
+          <div class="panel profile-card">
+            <div class="profile-avatar" id="profileAvatar">A</div>
+            <div style="font-size:20px;font-weight:700;margin-bottom:6px;" id="profileName">Admin</div>
+            <div class="profile-email" id="profileEmail">—</div>
+            <div class="profile-role">
+              <span class="badge badge-info" id="profileRole">—</span>
+            </div>
+            <div class="uid-label" style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Firebase UID</div>
+            <div class="profile-uid" id="profileUid">—</div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">Recent Activity</div>
+            <div class="activity-list" id="activityList">
+              <p style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px">Loading…</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit Forms -->
+        <div style="display:flex;flex-direction:column;gap:20px;">
+
+          <div class="panel">
+            <div class="panel-title">Account Details</div>
+            <form id="profile-form">
+              <div class="form-group">
+                <label>Display Name</label>
+                <input class="form-control" type="text" id="display-name" placeholder="Your name" />
+              </div>
+              <div class="form-group">
+                <label>Email Address</label>
+                <input class="form-control" type="email" id="profile-email-input" placeholder="email@example.com" disabled style="opacity:.6;cursor:not-allowed;" />
+              </div>
+              <div class="form-group">
+                <label>Role</label>
+                <input class="form-control" type="text" id="profile-role-input" disabled style="opacity:.6;cursor:not-allowed;" />
+              </div>
+              <div class="form-actions">
+                <button class="save-btn" type="submit">Save Changes</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">Change Password</div>
+            <form id="password-form">
+              <div class="form-group">
+                <label>New Password</label>
+                <input class="form-control" type="password" id="new-password" placeholder="Min 6 characters" minlength="6" required />
+              </div>
+              <div class="form-group">
+                <label>Confirm Password</label>
+                <input class="form-control" type="password" id="confirm-password" placeholder="Repeat password" required />
+              </div>
+              <div class="form-actions">
+                <button class="save-btn" type="submit">Update Password</button>
+              </div>
+              <div class="password-note">You will be logged out after changing your password.</div>
+            </form>
+          </div>
+
+          <div class="panel" style="border-color:rgba(239,68,68,.25);">
+            <div class="panel-title" style="color:var(--danger);">Danger Zone</div>
+            <p style="font-size:13px;color:var(--text-muted);margin-bottom:18px;">Signing out will end your current session.</p>
+            <button class="danger-btn" id="logoutBtn2">Sign Out</button>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="../js/middleware/auth-guard.js"></script>
+  <script type="module" src="../js/main.js"></script>
+  <script type="module">
+    import { auth, db } from "../js/firebase/firebase-config.js";
+    import { onAuthStateChanged, updatePassword, signOut }
+      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { doc, getDoc, setDoc, getDocs, collection, query, orderBy, limit }
+      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import toast  from "../js/components/toast.js";
+    import loader from "../js/components/loader.js";
+    import { formatDateTime } from "../js/utils/date-format.js";
+
+    let currentUser = null;
+
+    onAuthStateChanged(auth, async user => {
+      if (!user) return;
+      currentUser = user;
+
+      const initial = user.email[0].toUpperCase();
+      document.getElementById("profileAvatar").textContent      = initial;
+      document.getElementById("profileEmail").textContent       = user.email;
+      document.getElementById("profile-email-input").value      = user.email;
+      document.getElementById("profileUid").textContent         = user.uid;
+
+      /* Load admin doc for role + display name */
+      try {
+        const snap = await getDoc(doc(db, "admins", user.uid));
+        if (snap.exists()) {
+          const data = snap.data();
+          const name = data.name || user.email.split("@")[0];
+          document.getElementById("profileName").textContent       = name;
+          document.getElementById("profileAvatar").textContent     = name[0].toUpperCase();
+          document.getElementById("display-name").value            = name;
+          document.getElementById("profileRole").textContent       = data.role || "Admin";
+          document.getElementById("profile-role-input").value      = data.role || "Admin";
+        }
+      } catch(e) { console.error(e); }
+
+      loadActivity();
+    });
+
+    /* Save display name */
+    document.getElementById("profile-form").addEventListener("submit", async e => {
+      e.preventDefault();
+      if (!currentUser) return;
+      const name = document.getElementById("display-name").value.trim();
+      try {
+        loader.show();
+        await setDoc(doc(db, "admins", currentUser.uid), { name }, { merge: true });
+        document.getElementById("profileName").textContent    = name || currentUser.email.split("@")[0];
+        document.getElementById("profileAvatar").textContent  = (name || currentUser.email)[0].toUpperCase();
+        toast.show("Profile updated");
+      } catch(e) { toast.show(e.message, "error"); }
+      finally { loader.hide(); }
+    });
+
+    /* Change password */
+    document.getElementById("password-form").addEventListener("submit", async e => {
+      e.preventDefault();
+      const np = document.getElementById("new-password").value;
+      const cp = document.getElementById("confirm-password").value;
+      if (np !== cp) { toast.show("Passwords do not match", "error"); return; }
+      if (np.length < 6) { toast.show("Minimum 6 characters", "error"); return; }
+      try {
+        loader.show();
+        await updatePassword(currentUser, np);
+        toast.show("Password updated — signing out…");
+        setTimeout(() => signOut(auth).then(() => { window.location.href = "/login.html"; }), 1500);
+      } catch(e) {
+        if (e.code === "auth/requires-recent-login") {
+          toast.show("Re-login required to change password", "warning");
+        } else { toast.show(e.message, "error"); }
+      } finally { loader.hide(); }
+    });
+
+    /* Logout */
+    document.getElementById("logoutBtn2").addEventListener("click", async () => {
+      await signOut(auth);
+      window.location.href = "/login.html";
+    });
+
+    /* Recent activity from notifications */
+    async function loadActivity() {
+      const container = document.getElementById("activityList");
+      try {
+        const snap = await getDocs(
+          query(collection(db, "notifications"), orderBy("createdAt","desc"), limit(5))
+        ).catch(() => null);
+
+        container.innerHTML = "";
+        if (!snap || snap.empty) {
+          container.innerHTML = `<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px">No recent activity.</p>`;
+          return;
+        }
+        snap.forEach(d => {
+          const n = d.data();
+          const item = document.createElement("div"); item.className = "activity-item";
+          const dot  = document.createElement("div"); dot.className = "activity-dot";
+          const right = document.createElement("div");
+          const text  = document.createElement("div"); text.className = "activity-text"; text.textContent = n.title;
+          const time  = document.createElement("div"); time.className = "activity-time"; time.textContent = formatDateTime(n.createdAt);
+          right.appendChild(text); right.appendChild(time);
+          item.appendChild(dot); item.appendChild(right);
+          container.appendChild(item);
+        });
+      } catch(e) {
+        container.innerHTML = `<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px">No recent activity.</p>`;
+      }
+    }
+  </script>
+</body>
+</html>

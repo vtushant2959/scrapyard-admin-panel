@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Refurbished | Scrapyard Admin</title>
+  <link rel="icon" href="../assets/logo/favicon.ico" />
+  <link rel="stylesheet" href="../css/global.css" />
+  <style>
+    .add-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px; display: none; }
+    .add-panel.open { display: block; }
+    .add-panel h2 { font-size: 17px; font-weight: 700; margin-bottom: 20px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 560px) { .form-row { grid-template-columns: 1fr; } }
+    .form-actions { display: flex; gap: 10px; margin-top: 18px; }
+    .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; flex-wrap: wrap; }
+    .toolbar input { flex: 1; min-width: 200px; max-width: 360px; padding: 11px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-primary); font-size: 14px; }
+    .toolbar input::placeholder { color: var(--text-muted); }
+    .refurb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
+    .refurb-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; transition: var(--transition); }
+    .refurb-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+    .refurb-img  { width: 100%; height: 170px; object-fit: cover; background: var(--bg-input); }
+    .refurb-body { padding: 16px; }
+    .refurb-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    .refurb-cat  { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+    .refurb-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.5; }
+    .refurb-price { font-size: 18px; font-weight: 700; color: var(--success); margin-bottom: 14px; }
+    .refurb-actions { display: flex; gap: 8px; }
+    .refurb-actions button { flex: 1; padding: 9px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: var(--transition); }
+    .progress-bar { height: 4px; background: var(--bg-input); border-radius: 4px; margin-top: 8px; overflow: hidden; display: none; }
+    .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width .3s ease; }
+  </style>
+</head>
+<body>
+  <div id="sidebar-container"></div>
+  <div class="page-wrapper">
+    <div id="navbar"></div>
+    <main class="main-content">
+      <div class="page-header">
+        <h1>Refurbished Products</h1>
+        <button class="btn btn-primary" id="toggleAddBtn">+ Add Product</button>
+      </div>
+
+      <div class="add-panel" id="addPanel">
+        <h2>New Refurbished Product</h2>
+        <form id="add-refurb-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Product Name</label>
+              <input class="form-control" type="text" id="refurb-name" placeholder="e.g. Refurb Laptop" required />
+            </div>
+            <div class="form-group">
+              <label>Category</label>
+              <input class="form-control" type="text" id="refurb-category" placeholder="e.g. Electronics" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Price (₹)</label>
+              <input class="form-control" type="number" id="refurb-price" placeholder="0" min="0" required />
+            </div>
+            <div class="form-group">
+              <label>Image</label>
+              <input class="form-control" type="file" id="refurb-image" accept="image/jpeg,image/png,image/webp" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea class="form-control" id="refurb-description" placeholder="Short description…" rows="3" style="resize:vertical;"></textarea>
+          </div>
+          <div class="progress-bar" id="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Save</button>
+            <button class="btn" type="button" id="cancelBtn" style="background:var(--bg-input);color:var(--text-secondary);">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="toolbar">
+        <input type="search" id="refurb-search" placeholder="Search refurbished products…" />
+        <span class="text-muted" id="refurb-count"></span>
+      </div>
+      <div id="refurb-list" class="refurb-grid"></div>
+    </main>
+  </div>
+
+  <script type="module" src="../js/middleware/auth-guard.js"></script>
+  <script type="module" src="../js/main.js"></script>
+  <script type="module">
+    import { db } from "../js/firebase/firebase-config.js";
+    import { collection, getDocs, addDoc, deleteDoc, doc, serverTimestamp }
+      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import storageService from "../js/firebase/storage.js";
+    import toast from "../js/components/toast.js";
+    import loader from "../js/components/loader.js";
+
+    let all = [];
+
+    document.getElementById("toggleAddBtn").onclick = () => document.getElementById("addPanel").classList.toggle("open");
+    document.getElementById("cancelBtn").onclick = () => {
+      document.getElementById("addPanel").classList.remove("open");
+      document.getElementById("add-refurb-form").reset();
+    };
+
+    document.getElementById("add-refurb-form").addEventListener("submit", async e => {
+      e.preventDefault();
+      const name        = document.getElementById("refurb-name").value.trim();
+      const category    = document.getElementById("refurb-category").value.trim();
+      const price       = Number(document.getElementById("refurb-price").value);
+      const description = document.getElementById("refurb-description").value.trim();
+      const file        = document.getElementById("refurb-image").files[0];
+      if (!name || !category || !price || !file) { toast.show("All fields required", "error"); return; }
+      try {
+        loader.show();
+        const bar  = document.getElementById("progress-bar");
+        const fill = document.getElementById("progress-fill");
+        bar.style.display = "block";
+        const uploaded = await storageService.upload(file, "refurbished", pct => { fill.style.width = pct + "%"; });
+        await addDoc(collection(db, "refurbished_products"), {
+          name, category, price, description,
+          image: uploaded.url, imagePath: uploaded.path, createdAt: serverTimestamp()
+        });
+        toast.show("Product added");
+        bar.style.display = "none"; fill.style.width = "0%";
+        document.getElementById("add-refurb-form").reset();
+        document.getElementById("addPanel").classList.remove("open");
+        load();
+      } catch(err) { toast.show(err.message, "error"); }
+      finally { loader.hide(); }
+    });
+
+    async function load() {
+      try {
+        loader.show();
+        const snap = await getDocs(collection(db, "refurbished_products"));
+        all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        document.getElementById("refurb-count").textContent = `${all.length} products`;
+        render(all);
+      } catch(e) { toast.show(e.message, "error"); }
+      finally { loader.hide(); }
+    }
+
+    function render(list) {
+      const container = document.getElementById("refurb-list");
+      container.innerHTML = "";
+      if (!list.length) {
+        container.innerHTML = `<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:40px">No products found.</p>`;
+        return;
+      }
+      list.forEach(p => {
+        const card = document.createElement("div"); card.className = "refurb-card";
+        const img  = document.createElement("img"); img.className = "refurb-img";
+        img.src = p.image || "/assets/images/product-placeholder.png"; img.alt = p.name || "";
+        const body = document.createElement("div"); body.className = "refurb-body";
+        const nm   = document.createElement("div"); nm.className = "refurb-name"; nm.textContent = p.name;
+        const cat  = document.createElement("div"); cat.className = "refurb-cat";  cat.textContent = p.category;
+        const desc = document.createElement("div"); desc.className = "refurb-desc"; desc.textContent = p.description || "";
+        const pr   = document.createElement("div"); pr.className = "refurb-price";  pr.textContent = `₹${p.price}`;
+        const acts = document.createElement("div"); acts.className = "refurb-actions";
+        const del  = document.createElement("button");
+        del.textContent = "Delete";
+        del.style.cssText = "background:rgba(239,68,68,.15);color:var(--danger);";
+        del.onmouseover = () => { del.style.background = "var(--danger)"; del.style.color = "#fff"; };
+        del.onmouseout  = () => { del.style.background = "rgba(239,68,68,.15)"; del.style.color = "var(--danger)"; };
+        del.onclick = async () => {
+          if (!confirm("Delete this product?")) return;
+          try {
+            loader.show();
+            await deleteDoc(doc(db, "refurbished_products", p.id));
+            if (p.imagePath) await storageService.delete(p.imagePath).catch(() => {});
+            toast.show("Deleted"); load();
+          } catch(e) { toast.show(e.message, "error"); }
+          finally { loader.hide(); }
+        };
+        acts.appendChild(del);
+        body.appendChild(nm); body.appendChild(cat); body.appendChild(desc);
+        body.appendChild(pr); body.appendChild(acts);
+        card.appendChild(img); card.appendChild(body);
+        container.appendChild(card);
+      });
+    }
+
+    document.getElementById("refurb-search").addEventListener("input", e => {
+      const q = e.target.value.toLowerCase();
+      render(all.filter(p => p.name?.toLowerCase().includes(q) || p.category?.toLowerCase().includes(q)));
+    });
+
+    load();
+  </script>
+</body>
+</html>

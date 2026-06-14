@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>Login | Scrapyard Admin</title>
+
+  <meta
+    name="description"
+    content="Secure admin login for Scrapyard Admin Dashboard."
+  />
+
+  <meta
+    name="robots"
+    content="noindex,nofollow"
+  />
+
+  <meta
+    property="og:title"
+    content="Scrapyard Admin Login"
+  />
+
+  <meta
+    property="og:description"
+    content="Secure authentication portal for Scrapyard administrators."
+  />
+
+  <meta
+    property="og:type"
+    content="website"
+  />
+
+  <meta
+    name="theme-color"
+    content="#020617"
+  />
+
+  <link
+    rel="icon"
+    href="./assets/logo/favicon.ico"
+  />
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #020617;
+      --bg-card: #111827;
+      --bg-input: #1f2937;
+      --border-color: rgba(255,255,255,0.08);
+      --text-primary: #ffffff;
+      --text-secondary: #94a3b8;
+      --brand-primary: #2563eb;
+      --danger: #ef4444;
+      --radius-sm: 10px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --transition: all 0.3s ease;
+    }
+
+    body {
+      font-family: Inter, Arial, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .auth-wrapper {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--bg-card);
+      padding: 35px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-color);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+
+    .auth-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .auth-logo {
+      width: 90px;
+      height: 90px;
+      object-fit: contain;
+      margin-bottom: 20px;
+    }
+
+    .auth-header h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .auth-header p {
+      color: var(--text-secondary);
+      font-size: 15px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    input {
+      width: 100%;
+      padding: 15px;
+      border: 1px solid transparent;
+      border-radius: var(--radius-md);
+      background: var(--bg-input);
+      color: var(--text-primary);
+      font-size: 15px;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    input:focus {
+      border-color: var(--brand-primary);
+    }
+
+    input::placeholder {
+      color: var(--text-secondary);
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: var(--radius-md);
+      background: var(--brand-primary);
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    button:hover {
+      opacity: 0.95;
+      transform: translateY(-2px);
+    }
+
+    .error-message {
+      margin-top: 15px;
+      color: var(--danger);
+      text-align: center;
+      font-size: 14px;
+      min-height: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .auth-card {
+        padding: 25px;
+      }
+
+      .auth-header h1 {
+        font-size: 24px;
+      }
+
+      .auth-logo {
+        width: 75px;
+        height: 75px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 15px;
+      }
+
+      .auth-card {
+        padding: 20px;
+      }
+
+      input,
+      button {
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="auth-wrapper">
+
+    <section class="auth-card">
+
+      <div class="auth-header">
+
+        <img
+          src="./assets/logo/logo.png"
+          alt="Scrapyard Logo"
+          class="auth-logo"
+        />
+
+        <h1>
+          Scrapyard Admin
+        </h1>
+
+        <p>
+          Secure Login Portal
+        </p>
+
+      </div>
+
+      <form id="loginForm">
+
+        <div class="form-group">
+          <input
+            type="email"
+            id="email"
+            placeholder="Enter Admin Email"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <input
+            type="password"
+            id="password"
+            placeholder="Enter Password"
+            required
+          />
+        </div>
+
+        <button
+          type="submit"
+          id="loginBtn"
+        >
+          Login
+        </button>
+
+        <p
+          class="error-message"
+          id="error"
+        ></p>
+
+      </form>
+
+    </section>
+
+  </main>
+
+  <script type="module">
+    import authService from "./js/firebase/auth.js";
+    import toast from "./js/components/toast.js";
+    import loader from "./js/components/loader.js";
+
+    const loginForm =
+      document.getElementById("loginForm");
+
+    loginForm.addEventListener(
+      "submit",
+      async (e) => {
+        e.preventDefault();
+
+        const email =
+          document.getElementById("email").value.trim();
+
+        const password =
+          document.getElementById("password").value.trim();
+
+        const errorBox =
+          document.getElementById("error");
+
+        errorBox.textContent = "";
+
+        try {
+          loader.show();
+
+          await authService.login(
+            email,
+            password
+          );
+
+          toast.show(
+            "Login successful"
+          );
+
+          window.location.href =
+            "./dashboard.html";
+
+        } catch (error) {
+          console.error(error);
+
+          errorBox.textContent =
+            error.message;
+
+          toast.show(
+            error.message,
+            "error"
+          );
+        } finally {
+          loader.hide();
+        }
+      }
+    );
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,29 @@
+<nav class="navbar" role="navigation" aria-label="Admin top navigation">
+  <div class="navbar-left">
+    <button id="menuToggle" class="icon-btn" aria-label="Open sidebar">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+
+    <div class="search-box">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input
+        type="search"
+        id="globalSearch"
+        placeholder="Search records..."
+        aria-label="Search records"
+      />
+    </div>
+  </div>
+
+  <div class="navbar-right">
+    <button class="icon-btn notification-btn" aria-label="Notifications">
+      <i class="fa-solid fa-bell"></i>
+      <span class="badge" id="notificationCount">0</span>
+    </button>
+
+    <div class="profile-box" id="profileDropdownBtn">
+      <img src="../assets/images/default-user.png" alt="Admin profile" />
+      <span id="adminName">Admin</span>
+    </div>
+  </div>
+</nav>

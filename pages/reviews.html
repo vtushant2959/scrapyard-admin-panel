@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reviews | Scrapyard Admin</title>
+  <link rel="icon" href="../assets/logo/favicon.ico" />
+  <link rel="stylesheet" href="../css/global.css" />
+  <style>
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap:14px; margin-bottom:24px; }
+    .mini-stat { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-md); padding:18px 20px; }
+    .mini-stat-label { font-size:12px; color:var(--text-muted); margin-bottom:6px; }
+    .mini-stat-val { font-size:26px; font-weight:700; }
+    .filters { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
+    .filter-btn { padding:8px 18px; border-radius:20px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-secondary); font-size:13px; font-weight:600; cursor:pointer; transition:var(--transition); }
+    .filter-btn.active,.filter-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+    .reviews-list { display:flex; flex-direction:column; gap:14px; }
+    .review-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px 24px; }
+    .review-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px; }
+    .review-user  { display:flex; align-items:center; gap:12px; }
+    .review-avatar { width:40px; height:40px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0; }
+    .review-name  { font-weight:600; font-size:15px; }
+    .review-date  { font-size:12px; color:var(--text-muted); margin-top:2px; }
+    .stars { color:#f59e0b; font-size:16px; letter-spacing:2px; }
+    .review-msg   { color:var(--text-secondary); font-size:14px; line-height:1.6; margin-bottom:14px; }
+    .review-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .review-actions button { padding:8px 16px; border-radius:var(--radius-sm); font-size:13px; font-weight:600; cursor:pointer; border:none; transition:var(--transition); }
+    .btn-hide { background:rgba(245,158,11,.15); color:var(--warning); }
+    .btn-hide:hover { background:var(--warning); color:#fff; }
+    .btn-del  { background:rgba(239,68,68,.15); color:var(--danger); }
+    .btn-del:hover  { background:var(--danger); color:#fff; }
+    .hidden-badge { display:inline-block; padding:3px 10px; border-radius:12px; font-size:11px; background:rgba(100,116,139,.2); color:var(--text-muted); margin-left:8px; }
+  </style>
+</head>
+<body>
+  <div id="sidebar-container"></div>
+  <div class="page-wrapper">
+    <div id="navbar"></div>
+    <main class="main-content">
+      <div class="page-header">
+        <h1>Reviews & Ratings</h1>
+        <span class="text-muted" id="review-count"></span>
+      </div>
+      <div class="stats-row">
+        <div class="mini-stat"><div class="mini-stat-label">Total</div><div class="mini-stat-val" id="st-total">—</div></div>
+        <div class="mini-stat"><div class="mini-stat-label">Avg Rating</div><div class="mini-stat-val" style="color:var(--warning)" id="st-avg">—</div></div>
+        <div class="mini-stat"><div class="mini-stat-label">5 Stars</div><div class="mini-stat-val" style="color:var(--success)" id="st-5">—</div></div>
+        <div class="mini-stat"><div class="mini-stat-label">Hidden</div><div class="mini-stat-val" style="color:var(--text-muted)" id="st-hidden">—</div></div>
+      </div>
+      <div class="filters">
+        <button class="filter-btn active" data-f="all">All</button>
+        <button class="filter-btn" data-f="5">5 ★</button>
+        <button class="filter-btn" data-f="4">4 ★</button>
+        <button class="filter-btn" data-f="3">3 ★ &amp; below</button>
+        <button class="filter-btn" data-f="hidden">Hidden</button>
+      </div>
+      <div id="reviews-list" class="reviews-list"></div>
+    </main>
+  </div>
+
+  <script type="module" src="../js/middleware/auth-guard.js"></script>
+  <script type="module" src="../js/main.js"></script>
+  <script type="module">
+    import { db } from "../js/firebase/firebase-config.js";
+    import { collection, getDocs, updateDoc, deleteDoc, doc }
+      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import toast  from "../js/components/toast.js";
+    import loader from "../js/components/loader.js";
+    import { formatDate } from "../js/utils/date-format.js";
+
+    let all = [], activeFilter = "all";
+
+    async function load() {
+      try {
+        loader.show();
+        const snap = await getDocs(collection(db, "reviews"));
+        all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        const total  = all.length;
+        const avg    = total ? (all.reduce((s,r) => s + (Number(r.rating)||0), 0) / total).toFixed(1) : "—";
+        const five   = all.filter(r => Number(r.rating) === 5).length;
+        const hidden = all.filter(r => r.isHidden).length;
+
+        document.getElementById("review-count").textContent = `${total} total`;
+        document.getElementById("st-total").textContent  = total;
+        document.getElementById("st-avg").textContent    = avg;
+        document.getElementById("st-5").textContent      = five;
+        document.getElementById("st-hidden").textContent = hidden;
+        render();
+      } catch(e) { toast.show(e.message, "error"); }
+      finally { loader.hide(); }
+    }
+
+    function render() {
+      let list = all;
+      if (activeFilter === "5")      list = all.filter(r => Number(r.rating) === 5);
+      else if (activeFilter === "4") list = all.filter(r => Number(r.rating) === 4);
+      else if (activeFilter === "3") list = all.filter(r => Number(r.rating) <= 3);
+      else if (activeFilter === "hidden") list = all.filter(r => r.isHidden);
+
+      const container = document.getElementById("reviews-list");
+      container.innerHTML = "";
+      if (!list.length) {
+        container.innerHTML = `<p style="color:var(--text-muted);text-align:center;padding:40px">No reviews found.</p>`;
+        return;
+      }
+      list.forEach(r => {
+        const card = document.createElement("div"); card.className = "review-card";
+        if (r.isHidden) card.style.opacity = ".6";
+
+        const header = document.createElement("div"); header.className = "review-header";
+        const userDiv = document.createElement("div"); userDiv.className = "review-user";
+        const av = document.createElement("div"); av.className = "review-avatar";
+        av.textContent = (r.userName || "U")[0].toUpperCase();
+        const info = document.createElement("div");
+        const nm = document.createElement("div"); nm.className = "review-name";
+        nm.textContent = r.userName || "Anonymous";
+        if (r.isHidden) { const hb = document.createElement("span"); hb.className = "hidden-badge"; hb.textContent = "Hidden"; nm.appendChild(hb); }
+        const dt = document.createElement("div"); dt.className = "review-date"; dt.textContent = formatDate(r.createdAt);
+        info.appendChild(nm); info.appendChild(dt);
+        userDiv.appendChild(av); userDiv.appendChild(info);
+
+        const stars = document.createElement("div"); stars.className = "stars";
+        stars.textContent = "★".repeat(Number(r.rating)||0) + "☆".repeat(5 - (Number(r.rating)||0));
+
+        header.appendChild(userDiv); header.appendChild(stars);
+
+        const msg = document.createElement("div"); msg.className = "review-msg"; msg.textContent = r.message || "";
+
+        const acts = document.createElement("div"); acts.className = "review-actions";
+
+        const hideBtn = document.createElement("button"); hideBtn.className = "btn-hide";
+        hideBtn.textContent = r.isHidden ? "Unhide" : "Hide";
+        hideBtn.onclick = async () => {
+          try {
+            loader.show();
+            await updateDoc(doc(db, "reviews", r.id), { isHidden: !r.isHidden });
+            toast.show(r.isHidden ? "Review visible" : "Review hidden");
+            load();
+          } catch(e) { toast.show(e.message, "error"); }
+          finally { loader.hide(); }
+        };
+
+        const delBtn = document.createElement("button"); delBtn.className = "btn-del"; delBtn.textContent = "Delete";
+        delBtn.onclick = async () => {
+          if (!confirm("Delete this review permanently?")) return;
+          try {
+            loader.show();
+            await deleteDoc(doc(db, "reviews", r.id));
+            toast.show("Review deleted"); load();
+          } catch(e) { toast.show(e.message, "error"); }
+          finally { loader.hide(); }
+        };
+
+        acts.appendChild(hideBtn); acts.appendChild(delBtn);
+        card.appendChild(header); card.appendChild(msg); card.appendChild(acts);
+        container.appendChild(card);
+      });
+    }
+
+    document.querySelectorAll(".filter-btn").forEach(btn =>
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active"); activeFilter = btn.dataset.f; render();
+      })
+    );
+
+    load();
+  </script>
+</body>
+</html>

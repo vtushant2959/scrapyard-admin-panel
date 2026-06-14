@@ -1,0 +1,63 @@
+/* ==========================================
+   SCRAPYARD ADMIN VARIABLES
+========================================== */
+
+:root {
+  /* Theme Colors */
+  --bg-primary: #0f172a;
+  --bg-secondary: #111827;
+  --bg-card: #1e293b;
+  --bg-card-hover: #263449;
+  --bg-input: #1a2437;
+
+  /* Text */
+  --text-primary: #ffffff;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+
+  /* Brand */
+  --brand-primary: #3b82f6;
+  --brand-secondary: #2563eb;
+
+  /* Status */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #06b6d4;
+
+  /* Borders */
+  --border-color: rgba(255, 255, 255, 0.08);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.18);
+  --shadow-md: 0 8px 18px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 14px 30px rgba(0, 0, 0, 0.32);
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+
+  /* Typography */
+  --font-primary: Inter, system-ui, sans-serif;
+
+  --fs-xs: 12px;
+  --fs-sm: 14px;
+  --fs-md: 16px;
+  --fs-lg: 20px;
+  --fs-xl: 28px;
+
+  /* Spacing */
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 18px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* Layout */
+  --sidebar-width: 280px;
+  --navbar-height: 80px;
+
+  /* Animation */
+  --transition: all 0.3s ease;
+}
